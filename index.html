@@ -483,7 +483,9 @@ advanceActivePlayer() {
    ========================================= */
 function init(){
 	window.addEventListener("click", () => {
-  if (SoundFX.ctx.state === "suspended") SoundFX.ctx.resume();
+  if (typeof SoundFX !== "undefined" && SoundFX && SoundFX.ctx && SoundFX.ctx.state === "suspended") {
+    SoundFX.ctx.resume().catch(()=>{});
+  }
 }, { once: true });
   GameState.towns.forEach((t,i)=>UI.createNode(i,t,GameState.prices[i]));
   UI.updateTown();
@@ -774,44 +776,210 @@ function playChime() {
 })();
 
 /* =========================================
-   MODULE: Dynamic Map + Sidebar Resizer
+   MODULE 8: Dynamic Map + Sidebar Resizer & Audio Lifecycle
+   - Replaces the previous resizer module entirely
+   - Responsibilities:
+     * Responsive scaling for dice (use map width as base)
+     * Responsive adjustments for #musicCtl and .sidebar
+     * Positioning fix for player dots (percentage → px recalculation)
+     * Pause/stop audio on page hide/unload
    ========================================= */
-(function() {
+(function () {
   const container = document.querySelector(".container");
-  const map = document.querySelector(".map");
-  const sidebar = document.querySelector(".sidebar");
+  const mapEl = document.querySelector(".map");
+  const musicCtl = document.getElementById("musicCtl");
+  const bgMusic = document.getElementById("bgMusic");
+  let resizeTimer = null;
 
-  // 🧱 Fix spacing
-  container.style.display = "flex";
-  container.style.gap = "0";
-  container.style.alignItems = "flex-start";
+  if (!mapEl) return;
 
-  // 🪄 Create drag handle
-  const handle = document.createElement("div");
-  handle.id = "resizeHandle";
-  handle.style.width = "8px";
-  handle.style.cursor = "ew-resize";
-  handle.style.background = "linear-gradient(180deg, #d6b370, #b87b2c)";
-  handle.style.borderLeft = "2px solid #7a4f1a";
-  handle.style.borderRight = "2px solid #7a4f1a";
-  handle.style.height = "100%";
-  handle.style.boxShadow = "inset 0 0 5px rgba(0,0,0,0.3)";
-  container.insertBefore(handle, sidebar);
+  // --- PARAMETERS (tweakable)
+  const DICE_MAP_RATIO = 0.08; // dice max width = mapWidth * DICE_MAP_RATIO (8%)
+  const DICE_MIN_PX = 28;
+  const DICE_MAX_PX = 120;
+  const SIDEBAR_MOBILE_BREAK = 720; // px -> below this, collapse sidebar
 
-  // 🖱️ Handle drag logic
-  let dragging = false;
-  handle.addEventListener("mousedown", () => dragging = true);
-  window.addEventListener("mouseup", () => dragging = false);
-  window.addEventListener("mousemove", e => {
-    if (!dragging) return;
-    const rect = container.getBoundingClientRect();
-    let newWidth = e.clientX - rect.left;
-    newWidth = Math.max(400, Math.min(1100, newWidth)); // limit
-    map.style.width = newWidth + "px";
-  });
+  // Ensure player dots and nodes use map-relative coordinates on resize/initial
+  function recalcPlayerPositions() {
+    const node = document.querySelector(`.node[data-index="${GameState.currentTown}"]`);
+    if (!node) return;
+    const nodeRect = node.getBoundingClientRect();
+    const mapRect = mapEl.getBoundingClientRect();
+    const centerX = nodeRect.left - mapRect.left + nodeRect.width / 2;
+    const centerY = nodeRect.top - mapRect.top + nodeRect.height / 2;
 
-  // 🧭 Optional: Adjust sidebar to fill rest
-  sidebar.style.flex = "1";
+    const total = GameState.players.length;
+    const townRadius = Math.max(nodeRect.width, nodeRect.height) / 2;
+    const radius = Math.max(8, Math.round(townRadius * 0.8)); // scale radius with town size
+
+    GameState.players.forEach((p, i) => {
+      // distribute around circle but keep within map
+      let x = centerX;
+      let y = centerY;
+      if (total > 1) {
+        const angle = (i / total) * 2 * Math.PI;
+        x += radius * Math.cos(angle);
+        y += radius * Math.sin(angle);
+      }
+      // set in px but keep translate(-50%,-50%) in CSS so left/top point to center
+      p.dotEl.style.left = `${x}px`;
+      p.dotEl.style.top = `${y}px`;
+    });
+  }
+
+  // Scale 3D dice wrappers that Dice3D created
+  function scaleDiceToMap() {
+    const containerDice = document.getElementById("dice3d-container");
+    if (!containerDice) return;
+
+    const mapRect = mapEl.getBoundingClientRect();
+    const mapWidth = Math.max(180, mapRect.width); // safe fallback
+
+    // compute desired dice size in px bounded by min/max
+    const desired = Math.round(mapWidth * DICE_MAP_RATIO);
+    const size = Math.max(DICE_MIN_PX, Math.min(DICE_MAX_PX, desired));
+
+    // apply to each wrapper (created by dice3d.createDie)
+    const wrappers = containerDice.querySelectorAll(".dice3d-wrapper");
+    wrappers.forEach(w => {
+      w.style.width = `${size}px`;
+      w.style.height = `${size}px`;
+      // update perspective for nicer 3d on small dice
+      w.style.perspective = `${Math.max(400, size * 8)}px`;
+      // update child faces' borderRadius if present
+      const faces = w.querySelectorAll(".dice3d-face");
+      faces.forEach(f => {
+        f.style.borderRadius = Math.max(6, Math.round(size * 0.12)) + "px";
+      });
+      // if wrapper keeps a cached _diceSize, update it
+      if (w._diceSize) w._diceSize = size;
+    });
+
+    // also scale the simple .die (numeric readouts) to not overlap
+    const numericDice = document.querySelectorAll(".die");
+    numericDice.forEach((d, idx) => {
+      d.style.width = `${Math.round(size * 0.9)}px`;
+      d.style.height = `${Math.round(size * 0.9)}px`;
+      d.style.lineHeight = `${Math.round(size * 0.9)}px`;
+      d.style.fontSize = `${Math.max(14, Math.round(size * 0.45))}px`;
+      // ensure bottom placement stays reasonable on small screens
+      const bottomOffset = Math.min(16, Math.round(size * 0.12));
+      d.style.bottom = `${bottomOffset}px`;
+    });
+  }
+
+  // Responsive music control: shrink on small widths
+  function adjustMusicCtl() {
+    if (!musicCtl) return;
+    const mapRect = mapEl.getBoundingClientRect();
+    if (mapRect.width < 420) {
+      musicCtl.classList.add("compact-music");
+    } else {
+      musicCtl.classList.remove("compact-music");
+    }
+  }
+
+  // Responsive sidebar: collapse/hide on small screens (so map remains primary)
+  function adjustSidebar() {
+    const sidebar = document.querySelector(".sidebar");
+    if (!sidebar) return;
+    const mapRect = mapEl.getBoundingClientRect();
+    if (mapRect.width < SIDEBAR_MOBILE_BREAK) {
+      // collapse: reduce width and add small-floating
+      sidebar.style.width = "220px";
+      sidebar.style.opacity = "0.95";
+      sidebar.style.position = "absolute";
+      sidebar.style.right = "10px";
+      sidebar.style.top = "10px";
+      sidebar.style.maxHeight = "48%";
+      sidebar.style.overflow = "auto";
+      sidebar.classList.add("sidebar-collapsed");
+    } else {
+      // restore defaults – keep CSS-driven if possible
+      sidebar.style.width = "";
+      sidebar.style.position = "";
+      sidebar.style.right = "";
+      sidebar.style.top = "";
+      sidebar.style.maxHeight = "";
+      sidebar.classList.remove("sidebar-collapsed");
+    }
+  }
+
+  // Pause/suspend background audio & sound context on visibility change or unload
+  function ensureAudioLifecycle() {
+    // when page hidden -> pause audio & suspend AudioContext
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        if (bgMusic && !bgMusic.paused) {
+          try { bgMusic.pause(); } catch (e) {}
+        }
+        if (SoundFX && SoundFX.ctx && SoundFX.ctx.state === "running") {
+          try { SoundFX.ctx.suspend().catch(()=>{}); } catch(e) {}
+        }
+      } else {
+        // when user returns, keep audio paused (to avoid autoplay); optionally show a small hint
+        // do not auto-play without explicit gesture
+      }
+    });
+
+    // on unload: stop background audio immediately
+    window.addEventListener("pagehide", () => { // pagehide works well on mobile
+      try {
+        if (bgMusic) {
+          bgMusic.pause();
+          bgMusic.currentTime = 0;
+        }
+        if (SoundFX && SoundFX.ctx) {
+          // close or suspend if available
+          if (SoundFX.ctx.close) SoundFX.ctx.close().catch(()=>{});
+          else if (SoundFX.ctx.suspend) SoundFX.ctx.suspend().catch(()=>{});
+        }
+      } catch (e) { /* silent */ }
+    });
+
+    // also handle beforeunload for older browsers
+    window.addEventListener("beforeunload", () => {
+      try {
+        if (bgMusic) {
+          bgMusic.pause();
+          bgMusic.currentTime = 0;
+        }
+      } catch (e) {}
+    });
+  }
+
+  // Single adjustment entrypoint (debounced)
+  function adjustAll() {
+    // guard: map must have layout
+    if (!mapEl) return;
+    scaleDiceToMap();
+    recalcPlayerPositions();
+    adjustMusicCtl();
+    adjustSidebar();
+  }
+
+  // Debounced resize to avoid thrashing
+  function onResize() {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      adjustAll();
+    }, 120);
+  }
+
+  // Initial run and binding
+  window.addEventListener("resize", onResize);
+  // Also react to orientationchange on mobile
+  window.addEventListener("orientationchange", onResize);
+
+  // Run initial adjustments after small delay to allow DOM layout
+  setTimeout(() => {
+    adjustAll();
+    ensureAudioLifecycle();
+  }, 120);
+
+  // Expose a manual hook for debugging/tests
+  window.UI_adjustModule8 = adjustAll;
+  window.UI_recalcPlayers = recalcPlayerPositions;
 })();
 
 
