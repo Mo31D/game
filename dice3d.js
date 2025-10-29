@@ -58,65 +58,90 @@ root.style.zIndex = "6000"; // يعلو فوق كل شيء آخر
   });
   }
 
-// === REPLACE: function createDie(color) { ... } ===
+// === REPLACE ENTIRE FUNCTION: function createDie(color) { ... } ===
 function createDie(color) {
+  // Wrapper (الـ container لكل وجه)
   const wrapper = document.createElement("div");
   wrapper.className = "dice3d-wrapper";
 
-  // ✅ حجم النرد يعتمد على عرض الخريطة وليس عرض الشاشة فقط
+  // حساب الحجم اعتمادًا على عرض الخريطة (أكثر ثباتًا من عرض الشاشة)
   const mapEl = document.querySelector(".map");
   const mapWidth = mapEl ? mapEl.getBoundingClientRect().width : window.innerWidth;
-  const diceSize = Math.round(Math.max(26, Math.min(88, mapWidth * 0.08)));
+  // معامل أصغر قليلاً للحفاظ على قابلية العرض على الهواتف الطولية
+  const diceSize = Math.round(Math.max(24, Math.min(84, mapWidth * 0.072)));
 
+  // خصائص التغليف والتصيير الثلاثي الأبعاد
   wrapper.style.width = `${diceSize}px`;
   wrapper.style.height = `${diceSize}px`;
-  wrapper.style.perspective = `${Math.max(400, diceSize * 8)}px`;
+  wrapper.style.perspective = `${Math.max(420, diceSize * 9)}px`;
   wrapper.style.position = "relative";
   wrapper.style.userSelect = "none";
+  wrapper.style.transformStyle = "preserve-3d";
+  wrapper.style.display = "inline-block";
+  wrapper.style.touchAction = "manipulation";
 
+  // المكعب (الحاوية الفعلية للوجوه)
   const cube = document.createElement("div");
   cube.className = "dice3d-cube";
   cube.style.width = "100%";
   cube.style.height = "100%";
   cube.style.position = "absolute";
+  cube.style.left = "0";
+  cube.style.top = "0";
   cube.style.transformStyle = "preserve-3d";
-  cube.style.transition = "transform 1.2s cubic-bezier(.2,.9,.2,1)";
+  cube.style.transition = "transform 1.1s cubic-bezier(.2,.9,.2,1)";
+  cube.style.willChange = "transform";
   cube.style.transform = "rotateX(0deg) rotateY(0deg)";
 
-  // ✅ تدرج لوني بدل اللون الفلات، بدون خطوط أو ظلال
-  const baseColor =
-    color === "green"
-      ? "radial-gradient(circle at 30% 30%, #7cff86, #008f28)"
-      : "radial-gradient(circle at 30% 30%, #ff8888, #a00000)";
+  // تدرج لوني لوجه المكعب (يحافظ على الإيحاء الثلاثي الأبعاد)
+  const baseColor = color === "green"
+    ? "radial-gradient(circle at 30% 30%, #9fffa3, #006f2a)"
+    : "radial-gradient(circle at 30% 30%, #ffbdbd, #8b0000)";
+
+  // نصف الحجم (يستخدم لتحريك الوجوه للخارج) — نصحح بمقدار طفيف offset لتفادي الفجوات
   const half = Math.round(diceSize / 2);
+  const offsetFix = 0.6; // مقدار تصحيح بسيط يقلل ظهور الشقوق
+  const translateZ = Math.max(1, half - offsetFix);
 
-  // ✅ حجم النقطة الديناميكي: يتراوح 2–8px حسب الحجم
-  const dotSize = Math.max(2, Math.min(8, Math.round(diceSize * 0.10)));
-  const dotOffset = Math.round(dotSize / 2);
+  // حجم النقطة: نطاق أصغر يناسب الهواتف (1.5px → 4.5px تقريبًا)
+  const dotSize = Math.max(1.5, Math.min(4.5, diceSize * 0.065));
+  const dotOffset = dotSize / 2;
 
-  for (let i = 1; i <= 6; i++) {
+  // Helper: create a face with correct visual settings
+  function makeFace(transformStr) {
     const face = document.createElement("div");
     face.className = "dice3d-face";
-    face.style.background = baseColor;
-    face.style.border = "none";             // 🔥 لا حدود
-    face.style.boxShadow = "none";          // 🔥 لا ظل
     face.style.width = "100%";
     face.style.height = "100%";
     face.style.position = "absolute";
-    face.style.display = "block";
-    face.style.borderRadius = Math.max(4, Math.round(diceSize * 0.12)) + "px";
-    face.style.boxSizing = "border-box";
+    face.style.left = "0";
+    face.style.top = "0";
+    face.style.background = baseColor;
+    face.style.border = "none";
+    face.style.boxShadow = "none";
+    face.style.borderRadius = `${Math.max(3, Math.round(diceSize * 0.11))}px`;
+    face.style.backfaceVisibility = "hidden"; // يمنع ظهور الحواف البعيدة
+    face.style.transformStyle = "preserve-3d";
+    face.style.overflow = "hidden";
+    face.style.webkitTransform = transformStr;
+    face.style.transform = transformStr;
+    return face;
+  }
 
-    switch (i) {
-      case 1: face.style.transform = `rotateY(0deg) translateZ(${half}px)`; break;
-      case 2: face.style.transform = `rotateY(180deg) translateZ(${half}px)`; break;
-      case 3: face.style.transform = `rotateY(90deg) translateZ(${half}px)`; break;
-      case 4: face.style.transform = `rotateY(-90deg) translateZ(${half}px)`; break;
-      case 5: face.style.transform = `rotateX(90deg) translateZ(${half}px)`; break;
-      case 6: face.style.transform = `rotateX(-90deg) translateZ(${half}px)`; break;
-    }
+  // Generate faces 1..6 with corrected translateZ
+  const faceTransforms = {
+    1: `rotateY(0deg) translateZ(${translateZ}px)`,
+    2: `rotateY(180deg) translateZ(${translateZ}px)`,
+    3: `rotateY(90deg) translateZ(${translateZ}px)`,
+    4: `rotateY(-90deg) translateZ(${translateZ}px)`,
+    5: `rotateX(90deg) translateZ(${translateZ}px)`,
+    6: `rotateX(-90deg) translateZ(${translateZ}px)`
+  };
 
-    // ✅ نقاط النرد (صغيرة وواضحة)
+  for (let i = 1; i <= 6; i++) {
+    const face = makeFace(faceTransforms[i]);
+
+    // dots positions per side (existing positions kept for visual balance)
     const dots = getDotsForSide(i);
     dots.forEach(([x, y]) => {
       const dot = document.createElement("div");
@@ -124,22 +149,24 @@ function createDie(color) {
       dot.style.width = `${dotSize}px`;
       dot.style.height = `${dotSize}px`;
       dot.style.borderRadius = "50%";
-      dot.style.background = "#fff";
+      dot.style.background = "#ffffff";
       dot.style.position = "absolute";
       dot.style.left = `calc(${x}% - ${dotOffset}px)`;
       dot.style.top = `calc(${y}% - ${dotOffset}px)`;
-      dot.style.boxShadow = "0 0 1px rgba(0,0,0,0.2)";
+      dot.style.boxShadow = "0 0 0.6px rgba(0,0,0,0.18)";
+      dot.style.pointerEvents = "none";
       face.appendChild(dot);
     });
 
     cube.appendChild(face);
   }
 
+  // Append and expose
   wrapper.appendChild(cube);
   wrapper._diceSize = diceSize;
+  wrapper._translateZ = translateZ;
   return { wrapper, cube };
 }
-
   function getDotsForSide(num) {
     const center = [[50, 50]];
     const diagTLBR = [[28, 28], [72, 72]];

@@ -851,4 +851,21 @@ th { background: #fbfbfb; font-weight: 600; }
   transform: scale(1.15);
 }
 
+/* Dice 3D: ensure faces hide backface and have no border */
+.dice3d-wrapper { -webkit-transform-style: preserve-3d; transform-style: preserve-3d; }
+.dice3d-cube { transform-style: preserve-3d; -webkit-transform-style: preserve-3d; }
+.dice3d-face {
+  box-sizing: border-box;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  border: none !important;
+  box-shadow: none !important;
+}
 
+/* dots minor transitions */
+.dice3d-dot { transition: transform .12s ease; }
+.dice3d-wrapper:active .dice3d-dot,
+.dice3d-wrapper:hover .dice3d-dot { transform: scale(1.08); }
+
+/* clamp wrapper max visual size to avoid overflow on tiny screens */
+.dice3d-wrapper { max-width: 84px; max-height: 84px; }
