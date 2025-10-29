@@ -42,72 +42,103 @@ root.style.zIndex = "6000"; // يعلو فوق كل شيء آخر
 
     // make sure wrapper sizes are consistent via CSS (styles added separately)
     console.log("🎲 Dice3D initialized");
+	  // 🌀 تحديث الزهر تلقائيًا عند تغيير حجم الشاشة
+  window.addEventListener("resize", () => {
+    const parent = document.getElementById("dice3d-container");
+    if (!parent) return;
+
+    // امسح الزهر القديم
+    parent.innerHTML = "";
+
+    // أعد إنشاء النردين
+    greenDie = createDie("green");
+    redDie = createDie("red");
+    parent.appendChild(greenDie.wrapper);
+    parent.appendChild(redDie.wrapper);
+  });
   }
 
-  function createDie(color) {
-    const wrapper = document.createElement("div");
-    wrapper.className = "dice3d-wrapper";
-    wrapper.style.width = "84px";
-    wrapper.style.height = "84px";
-    wrapper.style.perspective = "900px";
-    wrapper.style.position = "relative";
-    wrapper.style.userSelect = "none";
+// === REPLACE: function createDie(color) { ... } ===
+function createDie(color) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "dice3d-wrapper";
 
-    const cube = document.createElement("div");
-    cube.className = "dice3d-cube";
-    cube.style.width = "100%";
-    cube.style.height = "100%";
-    cube.style.position = "absolute";
-    cube.style.transformStyle = "preserve-3d";
-    cube.style.transition = "transform 1.2s cubic-bezier(.2,.9,.2,1)";
-    cube.style.transform = "rotateX(0deg) rotateY(0deg)";
+  // ✅ حجم النرد يعتمد على عرض الخريطة وليس عرض الشاشة فقط
+  const mapEl = document.querySelector(".map");
+  const mapWidth = mapEl ? mapEl.getBoundingClientRect().width : window.innerWidth;
+  const diceSize = Math.round(Math.max(26, Math.min(88, mapWidth * 0.08)));
 
-    const baseColor = color === "green" ? "#26c94a" : "#e43c3c";
-    const borderColor = color === "green" ? "#11691f" : "#9c1a1a";
+  wrapper.style.width = `${diceSize}px`;
+  wrapper.style.height = `${diceSize}px`;
+  wrapper.style.perspective = `${Math.max(400, diceSize * 8)}px`;
+  wrapper.style.position = "relative";
+  wrapper.style.userSelect = "none";
 
-    for (let i = 1; i <= 6; i++) {
-      const face = document.createElement("div");
-      face.className = "dice3d-face";
-      face.style.background = baseColor;
-      face.style.border = `2px solid ${borderColor}`;
-      face.style.width = "100%";
-      face.style.height = "100%";
-      face.style.position = "absolute";
-      face.style.display = "block";
-      face.style.borderRadius = "10px";
-      face.style.boxSizing = "border-box";
+  const cube = document.createElement("div");
+  cube.className = "dice3d-cube";
+  cube.style.width = "100%";
+  cube.style.height = "100%";
+  cube.style.position = "absolute";
+  cube.style.transformStyle = "preserve-3d";
+  cube.style.transition = "transform 1.2s cubic-bezier(.2,.9,.2,1)";
+  cube.style.transform = "rotateX(0deg) rotateY(0deg)";
 
-      // position faces (translateZ uses half cube-size; wrapper is 84px so half is 42)
-      switch (i) {
-        case 1: face.style.transform = "rotateY(0deg) translateZ(42px)"; break;
-        case 2: face.style.transform = "rotateY(180deg) translateZ(42px)"; break;
-        case 3: face.style.transform = "rotateY(90deg) translateZ(42px)"; break;
-        case 4: face.style.transform = "rotateY(-90deg) translateZ(42px)"; break;
-        case 5: face.style.transform = "rotateX(90deg) translateZ(42px)"; break;
-        case 6: face.style.transform = "rotateX(-90deg) translateZ(42px)"; break;
-      }
+  // ✅ تدرج لوني بدل اللون الفلات، بدون خطوط أو ظلال
+  const baseColor =
+    color === "green"
+      ? "radial-gradient(circle at 30% 30%, #7cff86, #008f28)"
+      : "radial-gradient(circle at 30% 30%, #ff8888, #a00000)";
+  const half = Math.round(diceSize / 2);
 
-      // dot map for the face (relative positions in percent)
-      const dots = getDotsForSide(i);
-      dots.forEach(([x, y]) => {
-        const dot = document.createElement("div");
-        dot.className = "dice3d-dot";
-        dot.style.width = "12px";
-        dot.style.height = "12px";
-        dot.style.borderRadius = "50%";
-        dot.style.background = "#fff";
-        dot.style.position = "absolute";
-        dot.style.left = `calc(${x}% - 6px)`; // center the 12px dot
-        dot.style.top = `calc(${y}% - 6px)`;
-        face.appendChild(dot);
-      });
+  // ✅ حجم النقطة الديناميكي: يتراوح 2–8px حسب الحجم
+  const dotSize = Math.max(2, Math.min(8, Math.round(diceSize * 0.10)));
+  const dotOffset = Math.round(dotSize / 2);
 
-      cube.appendChild(face);
+  for (let i = 1; i <= 6; i++) {
+    const face = document.createElement("div");
+    face.className = "dice3d-face";
+    face.style.background = baseColor;
+    face.style.border = "none";             // 🔥 لا حدود
+    face.style.boxShadow = "none";          // 🔥 لا ظل
+    face.style.width = "100%";
+    face.style.height = "100%";
+    face.style.position = "absolute";
+    face.style.display = "block";
+    face.style.borderRadius = Math.max(4, Math.round(diceSize * 0.12)) + "px";
+    face.style.boxSizing = "border-box";
+
+    switch (i) {
+      case 1: face.style.transform = `rotateY(0deg) translateZ(${half}px)`; break;
+      case 2: face.style.transform = `rotateY(180deg) translateZ(${half}px)`; break;
+      case 3: face.style.transform = `rotateY(90deg) translateZ(${half}px)`; break;
+      case 4: face.style.transform = `rotateY(-90deg) translateZ(${half}px)`; break;
+      case 5: face.style.transform = `rotateX(90deg) translateZ(${half}px)`; break;
+      case 6: face.style.transform = `rotateX(-90deg) translateZ(${half}px)`; break;
     }
 
-    wrapper.appendChild(cube);
-    return { wrapper, cube };
+    // ✅ نقاط النرد (صغيرة وواضحة)
+    const dots = getDotsForSide(i);
+    dots.forEach(([x, y]) => {
+      const dot = document.createElement("div");
+      dot.className = "dice3d-dot";
+      dot.style.width = `${dotSize}px`;
+      dot.style.height = `${dotSize}px`;
+      dot.style.borderRadius = "50%";
+      dot.style.background = "#fff";
+      dot.style.position = "absolute";
+      dot.style.left = `calc(${x}% - ${dotOffset}px)`;
+      dot.style.top = `calc(${y}% - ${dotOffset}px)`;
+      dot.style.boxShadow = "0 0 1px rgba(0,0,0,0.2)";
+      face.appendChild(dot);
+    });
+
+    cube.appendChild(face);
   }
+
+  wrapper.appendChild(cube);
+  wrapper._diceSize = diceSize;
+  return { wrapper, cube };
+}
 
   function getDotsForSide(num) {
     const center = [[50, 50]];

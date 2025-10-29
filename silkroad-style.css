@@ -802,3 +802,53 @@ th { background: #fbfbfb; font-weight: 600; }
   0%, 100% { box-shadow: 0 0 6px currentColor; opacity: 1; }
   50% { box-shadow: 0 0 12px currentColor; opacity: 0.7; }
 }
+/* compact music control for small screens */
+#musicCtl.compact-music, #musicCtl.compact-music #musicBtn {
+  width: 36px !important;
+  height: 36px !important;
+  padding: 4px !important;
+  font-size: 14px !important;
+}
+#musicCtl.compact-music #musicUI { display:none !important; }
+
+/* collapsed sidebar styling (mobile) */
+.sidebar.sidebar-collapsed {
+  width: 220px !important;
+  padding: 8px !important;
+  font-size: 13px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+}
+
+/* ensure numeric .die behaves well when resized */
+.die {
+  border-radius: 8px;
+  padding: 0 4px;
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+
+/* ensure dice 3d wrapper default is constrained */
+.dice3d-wrapper {
+  max-width: 120px;
+  max-height: 120px;
+  width: auto;
+  height: auto;
+}
+
+/* reduce music hint size on small screens */
+#musicHint { font-size: 10px !important; right: 44px !important; bottom: 18px !important; }
+
+/* تحسين مظهر النرد الصغير */
+.dice3d-wrapper {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.dice3d-dot {
+  transition: transform 0.2s ease;
+}
+.dice3d-wrapper:hover .dice3d-dot {
+  transform: scale(1.15);
+}
+
+
