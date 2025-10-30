@@ -68,7 +68,7 @@ function createDie(color) {
   const mapEl = document.querySelector(".map");
   const mapWidth = mapEl ? mapEl.getBoundingClientRect().width : window.innerWidth;
   // معامل أصغر قليلاً للحفاظ على قابلية العرض على الهواتف الطولية
-  const diceSize = Math.round(Math.max(24, Math.min(84, mapWidth * 0.072)));
+  const diceSize = Math.round(Math.max(34, Math.min(96, mapWidth * 0.082)));
 
   // خصائص التغليف والتصيير الثلاثي الأبعاد
   wrapper.style.width = `${diceSize}px`;
@@ -104,7 +104,7 @@ function createDie(color) {
   const translateZ = Math.max(1, half - offsetFix);
 
   // حجم النقطة: نطاق أصغر يناسب الهواتف (1.5px → 4.5px تقريبًا)
-  const dotSize = Math.max(1.5, Math.min(4.5, diceSize * 0.065));
+  const dotSize = Math.max(3, Math.min(10, diceSize * 0.12));
   const dotOffset = dotSize / 2;
 
   // Helper: create a face with correct visual settings

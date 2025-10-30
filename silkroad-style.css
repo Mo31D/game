@@ -766,7 +766,6 @@ th { background: #fbfbfb; font-weight: 600; }
 
 /* 3D dice used by dice3d.js */
 #dice3d-container { pointer-events: none; }
-.dice3d-wrapper { display:block; width: auto; height: auto; }
 .dice3d-cube { width: 100%; height: 100%; position: absolute; transform-style: preserve-3d; }
 .dice3d-face {
   position: absolute;
@@ -827,22 +826,9 @@ th { background: #fbfbfb; font-weight: 600; }
   white-space: nowrap;
 }
 
-/* ensure dice 3d wrapper default is constrained */
-.dice3d-wrapper {
-  max-width: 120px;
-  max-height: 120px;
-  width: auto;
-  height: auto;
-}
 
 /* reduce music hint size on small screens */
 #musicHint { font-size: 10px !important; right: 44px !important; bottom: 18px !important; }
-
-/* تحسين مظهر النرد الصغير */
-.dice3d-wrapper {
-  border: none !important;
-  box-shadow: none !important;
-}
 
 .dice3d-dot {
   transition: transform 0.2s ease;
@@ -851,8 +837,7 @@ th { background: #fbfbfb; font-weight: 600; }
   transform: scale(1.15);
 }
 
-/* Dice 3D: ensure faces hide backface and have no border */
-.dice3d-wrapper { -webkit-transform-style: preserve-3d; transform-style: preserve-3d; }
+
 .dice3d-cube { transform-style: preserve-3d; -webkit-transform-style: preserve-3d; }
 .dice3d-face {
   box-sizing: border-box;
@@ -867,5 +852,18 @@ th { background: #fbfbfb; font-weight: 600; }
 .dice3d-wrapper:active .dice3d-dot,
 .dice3d-wrapper:hover .dice3d-dot { transform: scale(1.08); }
 
-/* clamp wrapper max visual size to avoid overflow on tiny screens */
-.dice3d-wrapper { max-width: 84px; max-height: 84px; }
+.dice3d-wrapper {
+  display: block;
+  position: relative;
+  width: auto;
+  height: auto;
+  -webkit-transform-style: preserve-3d;
+  transform-style: preserve-3d;
+  perspective: 800px;
+  border: none !important;
+  box-shadow: none !important;
+  max-width: none !important;
+  max-height: none !important;
+  user-select: none;
+  touch-action: manipulation;
+}
