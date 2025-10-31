@@ -75,7 +75,7 @@ document.getElementById("resetBtn2").onclick = () => location.reload();
 <div id="playersTableContainer" class="players-container"></div>
 
     </div>
-	
+	<br><br><br>
     <div class="panel">
       <strong>Log</strong>
 
@@ -913,16 +913,19 @@ function playChime() {
     });
   }
 
-  // Responsive music control: shrink on small widths
-  function adjustMusicCtl() {
-    if (!musicCtl) return;
-    const mapRect = mapEl.getBoundingClientRect();
-    if (mapRect.width < 420) {
-      musicCtl.classList.add("compact-music");
-    } else {
-      musicCtl.classList.remove("compact-music");
-    }
+function adjustMusicCtl() {
+  if (!musicCtl) return;
+  // الآن العنصر داخل الـ sidebar، لا يحتاج إلى قياسات mapRect
+  const sidebar = document.querySelector(".sidebar");
+  if (!sidebar) return;
+
+  const sidebarWidth = sidebar.getBoundingClientRect().width;
+  if (sidebarWidth < 300) {
+    musicCtl.classList.add("compact-music");
+  } else {
+    musicCtl.classList.remove("compact-music");
   }
+}
 
   // Responsive sidebar: collapse/hide on small screens (so map remains primary)
   function adjustSidebar() {
@@ -1029,25 +1032,9 @@ function playChime() {
 
 
 
-
 init();
 </script>
 <script src="musicControl.js"></script>
-
-<!-- 🎨 Theme Selector -->
-<div id="themeSelector" style="position:absolute;right:14px;bottom:70px;z-index:1900;">
-  <select id="themeSelect">
-    <option value="default">🏜️ Classic</option>
-    <option value="halloween">🎃 Halloween</option>
-    <option value="winter">❄️ Winter</option>
-  </select>
-</div>
-<script src="themes.js"></script>
-<script>
-  document.getElementById("themeSelect").onchange = e => {
-    ThemeManager.applyTheme(e.target.value);
-  };
-</script>
 <script src="soundFX.js"></script>
 </body>
 </html>

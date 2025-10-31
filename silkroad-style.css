@@ -258,8 +258,8 @@ th { background: #fbfbfb; font-weight: 600; }
   user-select: none;
   transition: transform 0.3s;
 }
-#greenDie { left: 0px; background: transparent; }
-#redDie { left: 0px; background: transparent; }
+#greenDie { left: 30px; top: 360px; background: transparent; }
+#redDie { left: 30px; top: 405px; background: transparent; }
 .die.roll { transform: scale(1.2) rotate(10deg); }
 
 #currentTownText {
@@ -801,14 +801,6 @@ th { background: #fbfbfb; font-weight: 600; }
   0%, 100% { box-shadow: 0 0 6px currentColor; opacity: 1; }
   50% { box-shadow: 0 0 12px currentColor; opacity: 0.7; }
 }
-/* compact music control for small screens */
-#musicCtl.compact-music, #musicCtl.compact-music #musicBtn {
-  width: 36px !important;
-  height: 36px !important;
-  padding: 4px !important;
-  font-size: 14px !important;
-}
-#musicCtl.compact-music #musicUI { display:none !important; }
 
 /* collapsed sidebar styling (mobile) */
 .sidebar.sidebar-collapsed {
@@ -928,4 +920,22 @@ body.halloween .map::after {
 @keyframes flicker {
   0%,100% { opacity: 0.7; }
   50% { opacity: 0.3; }
+}
+
+/* 🌙 Dynamic Map Backgrounds Based on Theme */
+body.default .map {
+  background: url("Silkroad_page-0001.jpeg") no-repeat center center;
+  background-size: contain;
+}
+
+body.halloween .map {
+  background: url("halloween_map.png") no-repeat center center;
+  background-size: contain;
+  filter: brightness(0.9) contrast(1.1);
+}
+
+body.night .map {
+  background: url("Silkroad_Night.jpeg") no-repeat center center;
+  background-size: contain;
+  filter: brightness(0.7) contrast(1.2);
 }
