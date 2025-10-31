@@ -209,20 +209,85 @@ function createDie(color) {
     cube.style.transform = `rotateX(${tx}deg) rotateY(${ty}deg)`;
   }
 
+// ===== REPLACE EXISTING rollBoth() WITH THIS BLOCK =====
   // rollBoth: apply animation and return numeric results
-  function rollBoth() {
-    const greenRoll = Math.floor(Math.random() * 6) + 1;
-    const redRoll = Math.floor(Math.random() * 6) + 1;
+  // options: { currentTownIndex: number, townsCount: number, maxRerolls: number }
+  function rollBoth(options = {}) {
+    const { currentTownIndex = null, townsCount = null, maxRerolls = 200 } = options || {};
 
-    if (greenDie && greenDie.cube) _applyRotation(greenDie.cube, greenRoll);
-    if (redDie && redDie.cube) _applyRotation(redDie.cube, redRoll);
+    // helper: single random die
+    function one() { return Math.floor(Math.random() * 6) + 1; }
+
+    let greenRoll = one();
+    let redRoll = one();
+    let reRolledTimes = 0;
+
+    // If one side must be ignored due to map edge, mark early.
+    // ignored = { green: bool, red: bool }
+    const ignored = { green: false, red: false };
+    if (Number.isFinite(currentTownIndex) && Number.isFinite(townsCount)) {
+      if (currentTownIndex === townsCount - 1) {
+        // at topmost town — no city "above" to move to using green die
+        ignored.green = true;
+      } else if (currentTownIndex === 0) {
+        // at bottommost town — no city "below" to move with red die
+        ignored.red = true;
+      }
+    }
+
+    // If both are ignored (edge case: single-city map), just return zeros
+    if (ignored.green && ignored.red) {
+      if (onRollDoneCallback) {
+        try {
+          setTimeout(() => onRollDoneCallback({
+            green: null, red: null,
+            effectiveGreen: null, effectiveRed: null,
+            reRolledTimes, ignored
+          }), 10);
+        } catch (e) {}
+      }
+      return { green: null, red: null, effectiveGreen: null, effectiveRed: null, reRolledTimes, ignored };
+    }
+
+    // Re-roll loop: if both dice are equal AND both are relevant (i.e., not ignored),
+    // then re-roll until non-equal. If one die is ignored, don't enforce the "no-equals" rule
+    // for the ignored pair (since only one die matters).
+    while (true) {
+      // If one side ignored, we don't need to force non-equal pairs
+      if (ignored.green || ignored.red) break;
+
+      if (greenRoll !== redRoll) break;
+
+      // re-roll both if equal
+      greenRoll = one();
+      redRoll = one();
+      reRolledTimes++;
+      if (reRolledTimes >= maxRerolls) break; // safety to avoid infinite loops (shouldn't happen)
+    }
+
+    // Effective results (null if ignored)
+    const effectiveGreen = ignored.green ? null : greenRoll;
+    const effectiveRed = ignored.red ? null : redRoll;
+
+    // apply rotation visuals if cubes exist (preserve original visual behaviour)
+    if (greenDie && greenDie.cube && effectiveGreen !== null) _applyRotation(greenDie.cube, greenRoll);
+    if (redDie && redDie.cube && effectiveRed !== null) _applyRotation(redDie.cube, redRoll);
 
     // If a callback is registered, call it after animation duration (1.2s)
     if (onRollDoneCallback) {
-      try { setTimeout(() => onRollDoneCallback({ green: greenRoll, red: redRoll }), 1300); } catch(e) {}
+      try {
+        setTimeout(() => onRollDoneCallback({
+          green: greenRoll,
+          red: redRoll,
+          effectiveGreen,
+          effectiveRed,
+          reRolledTimes,
+          ignored
+        }), 1300);
+      } catch (e) {}
     }
 
-    return { green: greenRoll, red: redRoll };
+    return { green: greenRoll, red: redRoll, effectiveGreen, effectiveRed, reRolledTimes, ignored };
   }
 
   // optionally register a callback called when the visual spin finishes

@@ -89,14 +89,21 @@ const SoundFX = (() => {
   // start preloading but don't block (decode may fail if context suspended)
   preloadAll();
 
-  return {
-    ctx,
-    volumes,
-    diceRoll,
-    caravanMove,
-    buy,
-    sell,
-    wait,
-    nextTurn // <-- exported so other modules can call it
-  };
+function notify() {
+  // 🔔 صوت إشعار بسيط (يُستخدم في Notifications)
+  // يمكن تغييره لاحقاً لصوت مستقل إذا أردت.
+  play("wait");
+}
+
+return {
+  ctx,
+  volumes,
+  diceRoll,
+  caravanMove,
+  buy,
+  sell,
+  wait,
+  nextTurn, // صوت انتقال الدور
+  notify     // صوت الإشعار العام
+};
 })();

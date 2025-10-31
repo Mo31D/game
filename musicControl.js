@@ -9,6 +9,7 @@
         <input id="musicVol" type="range" min="0" max="1" step="0.01" value="0.25">
         <select id="musicSel">
 		  <option value="market_breeze.mp3">🏜️ Market</option>
+		  <option value="halloween_theme.mp3">🎃 Halloween</option>
           <option value="desert_theme.mp3">🌅 Desert</option>
           <option value="night_caravan.mp3">🌙 Night</option>
           <option value="youtube">📺 YouTube Player</option>
