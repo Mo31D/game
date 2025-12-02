@@ -777,18 +777,54 @@ body.night .player-card.active{
   }
 }
 
-/* تصغير مربع إدخال الرقم */
-.inline-buttons .number-input input {
-    width: 40px !important;   /* كان غالبًا 70–90px */
-    padding: 3px !important;
-    font-size: 12px !important;
-    text-align: center;
+/* ===== Fix inline trade controls (global) ===== */
+
+/* نتحكم في حجم حقل الرقم نفسه */
+.player-card .inline-buttons .number-input input[type="number"] {
+  width: 34px !important;
+  max-width: 34px !important;
+  flex: 0 0 34px !important;  /* ما يتمططش */
+  padding: 2px !important;
+  font-size: 11px !important;
+  text-align: center;
 }
 
-/* رفع الأزرار فوق أي عناصر أخرى */
-.inline-buy,
-.inline-sell,
-.inline-wait {
-    position: relative;
-    z-index: 9999 !important;
+/* نمنع الـ number-input نفسه من التمدد */
+.player-card .inline-buttons .number-input {
+  flex: 0 0 auto !important;
+}
+
+/* ===== Mobile layout for player controls ===== */
+@media (max-width: 768px) {
+
+	
+
+  /* نخلي الأزرار تلف جوّه الكارت بدل ما تزق لبرا */
+  .player-card .inline-buttons {
+    width: 100% !important;
+    display: flex;
+    flex-wrap: wrap;              /* أهم سطر */
+    justify-content: center;
+    row-gap: 4px;
+    column-gap: 4px;
+  }
+
+  /* نخلي صف الـ Buy/Sell و Wait مرنين */
+  .player-card .inline-buttons .top-row,
+  .player-card .inline-buttons .bottom-row {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    width: 100%;
+  }
+
+  .player-card .inline-buy,
+  .player-card .inline-sell,
+  .player-card .inline-wait {
+    flex: 1 1 45%;
+    font-size: 11px;
+    padding: 4px 2px;
+    position: relative !important;
+    z-index: 9999 !important;   /* فوق أي حاجة */
+  }
 }
